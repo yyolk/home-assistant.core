@@ -3,6 +3,7 @@ from __future__ import annotations
 
 from twitchAPI.helper import first
 from twitchAPI.twitch import (
+    AuthScope,
     AuthType,
     InvalidTokenException,
     MissingScopeException,
@@ -109,7 +110,12 @@ class TwitchSensor(SensorEntity):
 
     async def async_update(self) -> None:
         """Update device state."""
-        followers = (await self._client.get_users_follows(to_id=self._channel.id)).total
+        if any(filter(lambda x: x is AuthScope.MODERATOR_READ_FOLLOWERS)):
+            # this is always unreachable more of a note-to-self until I have more info re:
+            # https://github.com/home-assistant/core/pull/93451#issuecomment-1676094061
+            followers = (await self._client.get_channel_followers(self._channel.id)).total
+        else:
+            followers = -1
         self._attr_extra_state_attributes = {
             ATTR_FOLLOWING: followers,
             ATTR_VIEWS: self._channel.view_count,
